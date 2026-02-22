@@ -6,6 +6,8 @@
   "scripts": {
     "precommit": "npm run precommit:block",
     "precommit:block": "node ./scripts/block-sensitive-files.js",
+
+    "build:bot": "pnpm run build --filter ./apps/bot",
     "prepare": "husky"
   },
   "keywords": [],
