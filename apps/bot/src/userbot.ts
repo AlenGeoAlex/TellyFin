@@ -41,7 +41,10 @@ export class UserBot {
         this._searcher = new Searcher(this);
         this._downloader = new Downloader(this);
         this._llmModelManager = new LlamaModelManager(Environment.get().options.LLM_MODEL_PATH)
-        this._tmdbClient = new TMDBClient(Environment.get().options.TMDB_API_KEY);
+        this._tmdbClient = new TMDBClient(
+            Environment.get().options.TMDB_API_KEY,
+            Environment.get().options.LANGUAGE_JSON_PATH
+        );
         this._interactionHandler = new InteractionHandler(this);
         this._replyHandler = new ReplyHandler(this);
     }
@@ -51,8 +54,6 @@ export class UserBot {
         this.me = await this.client.getMe();
         Logger.log(`Logged in as ${this.me.username}`)
         this.client.addEventHandler(async (event: NewMessageEvent) => {
-            if(this._isSetupComplete) return;
-
             if(event.message.replyTo){
                 Logger.info("Reply message detected - Forwarding to reply handler")
                 await this._replyHandler.handleReply(event.message);
@@ -61,11 +62,16 @@ export class UserBot {
                 await messageHandler(event, {userBot: this});
             }
         }, new NewMessage({}))
+        this._isSetupComplete = true;
     }
 
 
     public get telegramClient() : TelegramClient {
         return this.client;
+    }
+
+    public get environment(): Environment {
+        return Environment.get();
     }
 
     public get currentUser() : Api.User {

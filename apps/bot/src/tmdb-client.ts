@@ -100,7 +100,7 @@ export class TMDBClient {
 
     // ─── Search movies ────────────────────────────────────────────────────────────
 
-    private async searchMovies(query: string, year?: number | null): Promise<TMDBMovie[]> {
+    public async searchMovies(query: string, year?: number | null): Promise<TMDBMovie[]> {
         const params: Record<string, string> = { query };
         if (year) params["year"] = String(year);
 
@@ -120,7 +120,7 @@ export class TMDBClient {
     }
 
 
-    private async searchSeries(query: string, year?: number | null): Promise<TMDBSeries[]> {
+    public async searchSeries(query: string, year?: number | null): Promise<TMDBSeries[]> {
         const params: Record<string, string> = { query };
         if (year) params["first_air_date_year"] = String(year);
 

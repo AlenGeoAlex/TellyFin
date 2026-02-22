@@ -16,7 +16,10 @@ export class Environment {
                 .map(x => x.trim())?? [],
             LLM_MODEL_PATH: process.env.LLM_MODEL_PATH!,
             TMDB_API_KEY: process.env.TMDB_API_KEY!,
-            DOWNLOAD_CONCURRENCY: parseInt(process.env.DOWNLOAD_CONCURRENCY ?? '1') ?? 1,
+            DOWNLOAD_CONCURRENCY: parseInt(process.env.DOWNLOAD_CONCURRENCY ?? '1') || 1,
+            MAX_CONCURRENT_DOWNLOADS: parseInt(process.env.MAX_CONCURRENT_DOWNLOADS ?? '10') || 10,
+            LANGUAGE_JSON_PATH: process.env.LANGUAGE_JSON_PATH || './language.json',
+            MEDIA_ROOT: process.env.MEDIA_ROOT || '/media',
             MOVIE_PATH: (process.env.MOVIE_PATH) ?? './movies',
             SERIES_PATH: (process.env.SERIES_PATH) ?? './series',
         };
@@ -45,6 +48,9 @@ interface Options {
     TMDB_API_KEY: string;
     LLM_MODEL_PATH: string;
     DOWNLOAD_CONCURRENCY: number;
+    MAX_CONCURRENT_DOWNLOADS: number;
+    LANGUAGE_JSON_PATH: string;
+    MEDIA_ROOT: string;
     SERIES_PATH: string;
     MOVIE_PATH: string;
     [key: string]: string | string[] | number;

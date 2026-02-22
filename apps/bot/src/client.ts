@@ -43,7 +43,7 @@ export function createClient(
         Environment.get().options.API_HASH,
         {
             deviceModel: 'BOT_JELLYFIN',
-            maxConcurrentDownloads: Number(Environment.get().options.MAX_CONCURRENT_DOWNLOADS) || 10,
+            maxConcurrentDownloads: Environment.get().options.MAX_CONCURRENT_DOWNLOADS,
             requestRetries: 5,
             downloadRetries: 5,
         }

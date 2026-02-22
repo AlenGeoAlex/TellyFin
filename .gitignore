@@ -1,0 +1,27 @@
+# Node
+node_modules/
+dist/
+build/
+*.log
+.pnpm-debug.log*
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# PNPM
+# pnpm-lock.yaml is usually tracked, but some people prefer not to if it's a library.
+# For an app, it's better to track it.
+# node_modules/ is already covered above.
+
+# Project specific
+apps/bot/movies/
+apps/bot/series/

@@ -68,7 +68,7 @@ export class Downloader {
             ? Environment.get().options.MOVIE_PATH
             : Environment.get().options.SERIES_PATH;
 
-        const downloadPath = path.join("/media", resolvePath(fileTemplate, opts.resolvedMediaInfo));
+        const downloadPath = path.join(Environment.get().options.MEDIA_ROOT, resolvePath(fileTemplate, opts.resolvedMediaInfo));
         fs.mkdirSync(path.dirname(downloadPath), { recursive: true });
 
         const tempPath = `${downloadPath}.tmp`;

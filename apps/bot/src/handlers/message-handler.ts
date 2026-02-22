@@ -32,7 +32,7 @@ export const messageHandler = async (event: NewMessageEvent, options: {
 
         Logger.info(`Downloader response: ${downloaderResponse}`)
     } else if(!message.media) {
-        const searcherResponse = await options.userBot.searcher.search(text);
+        const searcherResponse = await options.userBot.searcher.search(text, message.id, message.chatId);
         Logger.info(`Searcher response: ${searcherResponse}`)
         return;
     }
