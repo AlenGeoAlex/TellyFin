@@ -22,6 +22,9 @@ export async function start() {
     }
     Logger.log('Connected to Telegram')
     const userBot = new UserBot(client);
+
+    process.on("SIGTERM", () => userBot.gracefulShutdown("SIGTERM"));
+    process.on("SIGINT",  () => userBot.gracefulShutdown("SIGINT"));
     await userBot.setupClient();
 }
 
@@ -97,5 +100,26 @@ export class UserBot {
 
     get interactionHandler(): InteractionHandler {
         return this._interactionHandler;
+    }
+
+    async gracefulShutdown(signal: string) {
+        Logger.info(`Received ${signal}, shutting down gracefully...`);
+
+        try {
+            await this.downloader.pauseQueue();
+            Logger.info(`Waiting for ${this.downloader.pending} pending downloads to finish...`);
+
+            await Promise.race([
+                this.downloader.queueOnIdle(),
+                new Promise(r => setTimeout(r, 30_000)), // max 30s wait
+            ]);
+
+            await this.telegramClient.disconnect();
+            Logger.info("Disconnected. Bye!");
+        } catch (err) {
+            Logger.error(`Error during shutdown: ${err}`);
+        } finally {
+            process.exit(0);
+        }
     }
 }

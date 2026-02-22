@@ -46,6 +46,7 @@ export function createClient(
             maxConcurrentDownloads: Environment.get().options.MAX_CONCURRENT_DOWNLOADS,
             requestRetries: 5,
             downloadRetries: 5,
+            connectionRetries: 5,
         }
     );
 }

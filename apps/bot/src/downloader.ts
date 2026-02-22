@@ -16,6 +16,18 @@ export class Downloader {
         this.downloaderQueue = new PQueue({concurrency: Environment.get().options.DOWNLOAD_CONCURRENCY});
     }
 
+    public get pending() {
+        return this.downloaderQueue.pending;
+    }
+
+    public async pauseQueue(){
+        this.downloaderQueue.pause();
+    }
+
+    public async queueOnIdle(){
+        return this.downloaderQueue.onIdle();
+    }
+
     async download(message: Api.Message, fileName: string) : Promise<'NoContent' | 'NotFound' | 'Success'> {
         const video = message.document || message.video || message.file;
         if(!video)
@@ -73,7 +85,7 @@ export class Downloader {
 
         const tempPath = `${downloadPath}.tmp`;
 
-        const client = createClient(true);
+        const client = this.userBot.telegramClient
         this.userBot.interactionHandler.react(opts.message.chatId, opts.message.id, Reacting)
             .catch((err) => Logger.error(`Failed to react to message: ${err}`))
 
