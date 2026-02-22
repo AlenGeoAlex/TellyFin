@@ -18,21 +18,21 @@ export class InteractionHandler {
         chatId: bigInt.BigInteger | undefined,
         messageId: number,
         emote: Emoticon
-    ) : Promise<boolean>{
+    ): Promise<boolean> {
         try {
+            // Strip variation selectors (U+FE0F, U+FE0E) and zero-width joiners
+            const sanitized = emote.replace(/[\uFE0E\uFE0F\u200D]/g, '');
+
             const response = await this.client.invoke(new Api.messages.SendReaction({
                 peer: chatId,
                 msgId: messageId,
                 reaction: [
-                    new Api.ReactionEmoji({
-                        emoticon: emote
-                    })
+                    new Api.ReactionEmoji({ emoticon: sanitized })
                 ]
             }));
-
             return true;
-        }catch (e){
-            Logger.error(`Failed to react to message: ${JSON.stringify(e)}`)
+        } catch (e) {
+            Logger.error(`Failed to react to message: ${JSON.stringify(e)}`);
             return false;
         }
     }

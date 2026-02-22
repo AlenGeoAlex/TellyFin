@@ -6,6 +6,9 @@ const BLOCKED_REGEXES = [
 
     // .env.* except .env.example
     /(^|\/)\.env\.(?!example$)[^/]+$/,
+
+    // .token-*
+    /(^|\/)\.token-[^/]+$/,
 ];
 
 const stagedFiles = execSync('git diff --cached --name-only', {
