@@ -1,6 +1,6 @@
 services:
   tellyfin:
-    build: .
+    image: alenalex/tellyfin:0.0.1
     restart: unless-stopped
     environment:
       RUN_AS: BOT
