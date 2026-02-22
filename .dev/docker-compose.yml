@@ -1,0 +1,18 @@
+services:
+  tellyfin:
+    build: .
+    restart: unless-stopped
+    environment:
+      RUN_AS: BOT
+      API_ID: ${API_ID}
+      API_HASH: ${API_HASH}
+      SESSION_STRING: ${SESSION_STRING}
+      TMDB_API_KEY: ${TMDB_API_KEY}
+      FORWARD_CHANNELS: ${FORWARD_CHANNELS}
+      LLM_MODEL_PATH: /config/model.gguf
+      LANGUAGE_JSON_PATH: /config/languages.json
+      MOVIE_PATH: /media/movies/{LANGUAGE_NAME}/{TITLE} ({YEAR}).{EXT}
+      SERIES_PATH: /media/series/{LANGUAGE_NAME}/{TITLE} ({YEAR})/Season {SEASON_PAD}/{TITLE} {SEASON_EPISODE}.{EXT}
+    volumes:
+      - ./config:/config      # mount your model.gguf and languages.json here
+      - ./media:/media        # all downloads land here, point Jellyfin at this

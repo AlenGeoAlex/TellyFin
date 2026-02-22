@@ -1,0 +1,32 @@
+{
+  "movies": {
+    "path": "movies/{LANGUAGE_NAME}/{TITLE} ({YEAR}).{EXT}",
+    "placeholders": {
+      "TITLE": "Canonical movie title from TMDB",
+      "YEAR": "Release year e.g. 2024",
+      "LANGUAGE_NAME": "Full language name e.g. Malayalam, Korean, Hindi",
+      "LANGUAGE_CODE": "ISO 639-1 code e.g. ml, ko, hi",
+      "ORIGIN_COUNTRY": "First origin country code e.g. IN, KR, US",
+      "EXT": "File extension e.g. mkv, mp4",
+      "ORIGINAL_TITLE": "Original title in native language"
+    }
+  },
+  "series": {
+    "path": "series/{LANGUAGE_NAME}/{TITLE} ({YEAR})/Season {SEASON_PAD}/{TITLE} {SEASON_EPISODE}.{EXT}",
+    "placeholders": {
+      "TITLE": "Canonical series title from TMDB",
+      "YEAR": "First air year e.g. 2022",
+      "LANGUAGE_NAME": "Full language name e.g. Malayalam, Korean, Hindi",
+      "LANGUAGE_CODE": "ISO 639-1 code e.g. ml, ko, hi",
+      "ORIGIN_COUNTRY": "First origin country code e.g. IN, KR, US",
+      "SEASON": "Season number e.g. 1",
+      "SEASON_PAD": "Zero padded season number e.g. 01",
+      "EPISODE": "Episode number e.g. 3",
+      "EPISODE_PAD": "Zero padded episode number e.g. 03",
+      "SEASON_EPISODE": "Combined e.g. S01E03",
+      "EPISODE_NAME": "Episode title from TMDB",
+      "EXT": "File extension e.g. mkv, mp4",
+      "ORIGINAL_TITLE": "Original title in native language"
+    }
+  }
+}

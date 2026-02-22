@@ -1,0 +1,10 @@
+packages:
+  - apps/*
+
+onlyBuiltDependencies:
+  - bufferutil
+  - core-js
+  - es5-ext
+  - esbuild
+  - node-llama-cpp
+  - utf-8-validate

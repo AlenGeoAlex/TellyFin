@@ -1,0 +1,29 @@
+{
+  "name": "bot-tellyfin",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc && tsc-alias",
+    "start": "node dist/main.js",
+    "login": "RUN_AS=LOGIN tsx src/main.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.27.0",
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "tsc-alias": "^1.8.16",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "input": "^1.0.1",
+    "node-llama-cpp": "^3.16.1",
+    "p-queue": "^9.1.0",
+    "telegram": "^2.26.22"
+  }
+}
