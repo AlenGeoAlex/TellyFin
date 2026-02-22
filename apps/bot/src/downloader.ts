@@ -88,7 +88,7 @@ export class Downloader {
 
         const tempPath = `${downloadPath}.tmp`;
 
-        const client = this.userBot.telegramClient
+        const client = createClient(true)
         this.userBot.interactionHandler.react(opts.message.chatId, opts.message.id, Loading)
            .catch((err) => Logger.error(`Failed to react to message: ${err}`))
 
@@ -102,6 +102,7 @@ export class Downloader {
                 if (Date.now() - lastProgressAt > STALL_TIMEOUT) {
                     Logger.warn(`Download stalled: ${opts.resolvedMediaInfo.title}, aborting...`);
                     await client.disconnect().catch(() => {});
+                    await client.destroy().catch(() => {});
                 }
             }, 10_000);
 
@@ -122,6 +123,8 @@ export class Downloader {
 
             fs.renameSync(tempPath, downloadPath);
             Logger.info(`Saved: ${downloadPath}`);
+            await client.disconnect().catch(() => {});
+            await client.destroy().catch(() => {});
             this.userBot.interactionHandler.react(opts.message.chatId, opts.message.id, Success)
                 .catch((err) => Logger.error(`Failed to react to message: ${err}`))
         } catch (err) {

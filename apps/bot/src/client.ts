@@ -1,6 +1,7 @@
 import {Environment} from "@/types/env.type.js";
-import {TelegramClient} from "telegram";
+import { TelegramClient} from "telegram";
 import {StringSession} from "telegram/sessions/index.js";
+import {Logger} from "@/logger.js";
 
 /**
  * Creates and returns a new instance of the TelegramClient.
@@ -37,7 +38,7 @@ export function createClient(
         sessionString = new StringSession(sessionTokenRaw);
     }
 
-    return new TelegramClient(
+    const telegramClient = new TelegramClient(
         sessionString,
         Number(Environment.get().options.API_ID),
         Environment.get().options.API_HASH,
@@ -48,7 +49,12 @@ export function createClient(
             downloadRetries: 5,
             connectionRetries: 5,
             autoReconnect: true,
-
         }
     );
+
+    telegramClient.onError = async (err) => {
+        Logger.error(`Telegram client error: ${err.message}`);
+    }
+
+    return telegramClient;
 }
