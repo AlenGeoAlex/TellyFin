@@ -8,7 +8,8 @@ import {Environment} from "@/types/env.type.js";
 import {resolvePath} from "@/utils.js";
 import * as fs from "node:fs";
 import {createClient} from "@/client.js";
-import {Error, Loading, Reacting, Success, ThumbsDown} from "@/constants/emoticon.js";
+import {Error, Loading, Success, ThumbsDown, ThumbsUp} from "@/constants/emoticon.js";
+import {FAILED_TO_FIND_MEDIA} from "@/constants/messages.js";
 
 export class Downloader {
     private readonly downloaderQueue :PQueue;
@@ -38,7 +39,7 @@ export class Downloader {
             return 'NoContent';
         }
 
-        this.userBot.interactionHandler.react(message.chatId, message.id, Loading)
+        this.userBot.interactionHandler.react(message.chatId, message.id, ThumbsUp)
             .catch((err) => Logger.error(`Failed to react to message: ${err}`))
 
         Logger.info(`Extracting media info for file: ${fileName}`)
@@ -58,6 +59,8 @@ export class Downloader {
             this.userBot.interactionHandler.react(message.chatId, message.id, ThumbsDown)
                 .catch((err) => Logger.error(`Failed to react to message: ${err}`))
 
+            this.userBot.interactionHandler.replyToMessage(message.chatId, message.id, FAILED_TO_FIND_MEDIA)
+                .catch((err) => Logger.error(`Failed to reply to message: ${err}`))
             Logger.warn("Failed to resolve media, skipping download.")
             return 'NotFound';
         }
@@ -86,8 +89,8 @@ export class Downloader {
         const tempPath = `${downloadPath}.tmp`;
 
         const client = this.userBot.telegramClient
-        this.userBot.interactionHandler.react(opts.message.chatId, opts.message.id, Reacting)
-            .catch((err) => Logger.error(`Failed to react to message: ${err}`))
+        this.userBot.interactionHandler.react(opts.message.chatId, opts.message.id, Loading)
+           .catch((err) => Logger.error(`Failed to react to message: ${err}`))
 
         try {
             await client.connect();

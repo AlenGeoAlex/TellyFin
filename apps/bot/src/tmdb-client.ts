@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import {Logger} from "@/logger.js";
 
 export interface TMDBMovie {
     id: number;
@@ -63,8 +64,10 @@ export class TMDBClient {
         }
 
         const resolvedPath = languagesPath;
+        Logger.log(`Try Loading language names from ${resolvedPath}`);
         if (resolvedPath && fs.existsSync(resolvedPath)) {
             this.languages = JSON.parse(fs.readFileSync(resolvedPath, "utf-8"));
+            Logger.log(`Loaded language names from ${resolvedPath}`);
         } else {
             this.languages = {
                 ml: "Malayalam", ko: "Korean",  hi: "Hindi",
@@ -75,6 +78,7 @@ export class TMDBClient {
                 pt: "Portuguese",ru: "Russian", ar: "Arabic",
                 tr: "Turkish",   th: "Thai",
             };
+            Logger.log(`Loaded fallback language names`);
         }
     }
 
@@ -95,16 +99,17 @@ export class TMDBClient {
         if (!res.ok) {
             throw new Error(`TMDB API error: ${res.status} ${res.statusText}`);
         }
-        return res.json() as Promise<T>;
-    }
 
-    // ─── Search movies ────────────────────────────────────────────────────────────
+        const response = await res.json();
+        Logger.log(`TMDB API request successful: ${endpoint} with data ${JSON.stringify(response)}`);
+        return response;
+    }
 
     public async searchMovies(query: string, year?: number | null): Promise<TMDBMovie[]> {
         const params: Record<string, string> = { query };
         if (year) params["year"] = String(year);
-
-        const data = await this.get<{ results: any[] }>("/search/movie", params);
+        Logger.log(`Searching TMDB for movies with query ${query} and year ${year}`);
+        let data = await this.get<{ results: any[] }>("/search/movie", params);
 
         return data.results.map((r) => ({
             id: r.id,
@@ -123,7 +128,7 @@ export class TMDBClient {
     public async searchSeries(query: string, year?: number | null): Promise<TMDBSeries[]> {
         const params: Record<string, string> = { query };
         if (year) params["first_air_date_year"] = String(year);
-
+        Logger.log(`Searching TMDB for series with query ${query} and year ${year}`);
         const data = await this.get<{ results: any[] }>("/search/tv", params);
 
         return data.results.map((r) => ({
@@ -139,7 +144,6 @@ export class TMDBClient {
         }));
     }
 
-    // ─── Get episode ──────────────────────────────────────────────────────────────
 
     private async getEpisode(
         seriesId: number,
@@ -147,9 +151,11 @@ export class TMDBClient {
         episode: number
     ): Promise<TMDBEpisode | null> {
         try {
+            Logger.log(`Fetching episode ${episode} of season ${season} of series ${seriesId}`);
             const data = await this.get<any>(
                 `/tv/${seriesId}/season/${season}/episode/${episode}`
             );
+
             return {
                 id: data.id,
                 name: data.name,

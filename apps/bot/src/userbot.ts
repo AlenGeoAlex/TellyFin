@@ -2,7 +2,7 @@ import {Environment} from "@/types/env.type.js";
 import {Api, TelegramClient} from "telegram";
 import {createClient} from "@/client.js";
 import {Logger} from "@/logger.js";
-import {NewMessage, NewMessageEvent} from "telegram/events/index.js";
+import {NewMessage, NewMessageEvent, Raw} from "telegram/events/index.js";
 import {Searcher} from "@/searcher.js";
 import {Downloader} from "@/downloader.js";
 import {LlamaModelManager} from "@/llm-model-manager.js";
@@ -10,6 +10,7 @@ import {TMDBClient} from "@/tmdb-client.js";
 import {InteractionHandler} from "@/interaction-handler.js";
 import {messageHandler} from "@/handlers/message-handler.js";
 import {ReplyHandler} from "@/handlers/reply-handler.js";
+import Message = Api.Message;
 
 export async function start() {
     const client = createClient(true);
@@ -85,6 +86,22 @@ export class UserBot {
                 await messageHandler(event, {userBot: this});
             }
         }, new NewMessage({}))
+
+        this.client.addEventHandler(async (update: Api.TypeUpdate) => {
+            if(update.className === 'UpdateEditMessage'){
+                if (update.message.className === 'Message') {
+                    const message = update.message as Message;
+                    message.reactions?.recentReactions?.forEach(reaction => {
+                        if (reaction.reaction instanceof Api.ReactionEmoji) {
+                            const emoticon = reaction.reaction.emoticon;
+                            const peerId = reaction.peerId;
+
+                            console.log(emoticon);
+                        }
+                    })
+                }
+            }
+        }, new Raw({}));
         this._isSetupComplete = true;
     }
 

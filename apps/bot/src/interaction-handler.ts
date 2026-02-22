@@ -2,6 +2,7 @@ import {UserBot} from "@/userbot.js";
 import {Api, TelegramClient} from "telegram";
 import {Emoticon} from "@/constants/emoticon.js";
 import {Logger} from "@/logger.js";
+import {BOT_PREFIX} from "@/constants/messages.js";
 
 export class InteractionHandler {
 
@@ -38,12 +39,13 @@ export class InteractionHandler {
     }
 
     public async replyToMessage(
-        chatId: number,
+        chatId: bigInt.BigInteger | undefined,
         messageId: number,
         message: string
     ) {
         try {
-            const response = await this.client.sendMessage(chatId, {
+            message = `${BOT_PREFIX}\n${message}`
+            const response = await this.client.sendMessage(chatId!, {
                 message,
                 replyTo: messageId
             })
