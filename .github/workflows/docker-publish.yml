@@ -106,6 +106,6 @@ jobs:
           docker buildx imagetools create $(echo "${{ steps.meta.outputs.tags }}" | sed 's/ / -t /g' | sed 's/^/-t /') \
             $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
 
-      - name: Inspect image
-        run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+#      - name: Inspect image
+#        run: |
+#          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name == 'main' && 'latest' || github.ref_name }}
