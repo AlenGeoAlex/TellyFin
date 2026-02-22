@@ -25,6 +25,26 @@ export async function start() {
 
     process.on("SIGTERM", () => userBot.gracefulShutdown("SIGTERM"));
     process.on("SIGINT",  () => userBot.gracefulShutdown("SIGINT"));
+    process.on("uncaughtException", (err) => {
+        if (err.message === "TIMEOUT") {
+            Logger.warn("GramJS update loop timeout — reconnecting...");
+            if(client.disconnected)
+                client.connect().catch(() => {});
+            return;
+        }
+        Logger.error(`Uncaught exception: ${err}`);
+        process.exit(1);
+    });
+
+    process.on("unhandledRejection", (reason) => {
+        if (reason instanceof Error && reason.message === "TIMEOUT") {
+            Logger.warn("GramJS timeout rejection — reconnecting...");
+            if(client.disconnected)
+                client.connect().catch(() => {});
+            return;
+        }
+        Logger.error(`Unhandled rejection: ${reason}`);
+    });
     await userBot.setupClient();
 }
 

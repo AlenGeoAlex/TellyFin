@@ -47,6 +47,8 @@ export function createClient(
             requestRetries: 5,
             downloadRetries: 5,
             connectionRetries: 5,
+            autoReconnect: true,
+
         }
     );
 }
