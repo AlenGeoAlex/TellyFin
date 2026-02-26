@@ -25,11 +25,6 @@ export const messageHandler = async (event: NewMessageEvent, options: {
             return;
         }
 
-        if(downloaderResponse === 'NotFound') {
-            Logger.warn("Media not found in downloader response, skipping")
-            return;
-        }
-
         Logger.info(`Downloader response: ${downloaderResponse}`)
     } else if(!message.media) {
         const searcherResponse = await options.userBot.searcher.search(text, message.id, message.chatId);

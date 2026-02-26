@@ -7,4 +7,5 @@ onlyBuiltDependencies:
   - es5-ext
   - esbuild
   - node-llama-cpp
+  - sqlite3
   - utf-8-validate

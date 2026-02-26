@@ -1,7 +1,6 @@
 import {UserBot} from "@/userbot.js";
 import {Api} from "telegram";
 import {Logger} from "@/logger.js";
-import {FAILED_TO_FIND_MEDIA} from "@/constants/messages.js";
 
 export class ReplyHandler {
 
@@ -52,11 +51,6 @@ export class ReplyHandler {
         if(reply === 'NoContent') {
             Logger.warn("Failed to download file, skipping reply handler (This shouldn't happen).")
             return;
-        }
-
-        if(reply === 'NotFound') {
-            this.userBot.interactionHandler.replyToMessage(message.chatId, message.id, FAILED_TO_FIND_MEDIA)
-                .catch((err) => Logger.error(`Failed to reply to message: ${err}`))
         }
     }
 
