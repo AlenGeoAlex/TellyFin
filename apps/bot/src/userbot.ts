@@ -11,9 +11,12 @@ import {InteractionHandler} from "@/interaction-handler.js";
 import {messageHandler} from "@/handlers/message-handler.js";
 import {ReplyHandler} from "@/handlers/reply-handler.js";
 import Message = Api.Message;
+import {ConnectionHeartbeat} from "@/connection-heartbeat.js";
+import {JellyfinManager} from "@/jellyfin/jellyfin-manager.js";
 
 export async function start() {
     const client = createClient(true);
+
     Logger.log('Connecting to Telegram...')
     try {
         const connected = await client.connect();
@@ -23,7 +26,7 @@ export async function start() {
     }
     Logger.log('Connected to Telegram')
     const userBot = new UserBot(client);
-
+    const heartbeat = new ConnectionHeartbeat(userBot);
     process.on("SIGTERM", () => userBot.gracefulShutdown("SIGTERM"));
     process.on("SIGINT",  () => userBot.gracefulShutdown("SIGINT"));
     process.on("uncaughtException", (err) => {
@@ -59,6 +62,7 @@ export class UserBot {
     private readonly _tmdbClient: TMDBClient;
     private readonly _interactionHandler: InteractionHandler;
     private readonly _replyHandler: ReplyHandler;
+    private readonly _jellyfinManager: JellyfinManager;
     constructor(
         private readonly client: TelegramClient
     ) {
@@ -71,6 +75,7 @@ export class UserBot {
         );
         this._interactionHandler = new InteractionHandler(this);
         this._replyHandler = new ReplyHandler(this);
+        this._jellyfinManager = new JellyfinManager(this);
     }
 
     async setupClient(){
@@ -137,6 +142,14 @@ export class UserBot {
 
     get interactionHandler(): InteractionHandler {
         return this._interactionHandler;
+    }
+
+    get isSetupComplete(): boolean {
+        return this._isSetupComplete;
+    }
+
+    get jellyfinManager(): JellyfinManager {
+        return this._jellyfinManager;
     }
 
     async gracefulShutdown(signal: string) {

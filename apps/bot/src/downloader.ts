@@ -141,7 +141,7 @@ export class Downloader {
 
             fs.renameSync(tempPath, downloadPath);
             Logger.info(`Saved: ${downloadPath}`);
-
+            await this.userBot.jellyfinManager.tryRefresh();
             this.userBot.interactionHandler.react(task.chatId, task.messageId, Success)
                 .catch((err) => Logger.error(`Failed to react to message: ${err}`));
 

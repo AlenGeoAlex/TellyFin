@@ -22,6 +22,8 @@ export class Environment {
             MEDIA_ROOT: process.env.MEDIA_ROOT || '/media',
             MOVIE_PATH: (process.env.MOVIE_PATH) ?? './movies',
             SERIES_PATH: (process.env.SERIES_PATH) ?? './series',
+            JELLYFIN_URL: process.env.JELLYFIN_URL,
+            JELLYFIN_API_KEY: process.env.JELLYFIN_API_KEY,
         };
     }
 
@@ -53,5 +55,7 @@ interface Options {
     MEDIA_ROOT: string;
     SERIES_PATH: string;
     MOVIE_PATH: string;
-    [key: string]: string | string[] | number;
+    JELLYFIN_URL: string | undefined;
+    JELLYFIN_API_KEY: string | undefined;
+    [key: string]: string | string[] | number | undefined;
 }
