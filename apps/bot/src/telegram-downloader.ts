@@ -89,7 +89,7 @@ export class TelegramDownloader {
             if (!resolved) {
                 this.userBot.interactionHandler.react(task.chatId, task.messageId, ThumbsDown)
                     .catch((err) => Logger.error(`Failed to react to message: ${err}`));
-                this.userBot.interactionHandler.replyToMessage(task.chatId, task.messageId, FAILED_TO_FIND_MEDIA)
+                this.userBot.interactionHandler.replyToMessage(task.chatId, task.messageId, FAILED_TO_FIND_MEDIA, false)
                     .catch((err) => Logger.error(`Failed to reply to message: ${err}`));
                 Logger.warn(`Failed to resolve media for task: ${task}, skipping.`);
                 return;
