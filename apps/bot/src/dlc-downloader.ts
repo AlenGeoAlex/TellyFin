@@ -162,13 +162,13 @@ export class DLCDownloader {
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
                 clearInterval(interval);
-                reject(new Error(`Timed out waiting for JDownloader job ${jobId} after 2 minutes`));
-            }, 1000 * 60 * 2);
+                reject(new Error(`Timed out waiting for JDownloader job ${jobId} after 3 minutes`));
+            }, 1000 * 60 * 3);
 
             const interval = setInterval(async () => {
                 try {
                     const isCollecting = await this.userBot.jDownloader.isCollecting();
-                    if (!isCollecting) {
+                    if (isCollecting) {
                         Logger.info(`JDownloader is still collecting for job ${jobId}`);
                         return;
                     }
