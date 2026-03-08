@@ -187,7 +187,7 @@ export class DLCDownloader {
                     clearTimeout(timeout);
                     reject(e);
                 }
-            }, 1000);
+            }, 1000 * 30);
         });
     }
 
