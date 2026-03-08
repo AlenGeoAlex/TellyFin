@@ -41,10 +41,12 @@ export class InteractionHandler {
     public async replyToMessage(
         chatId: bigInt.BigInteger | undefined,
         messageId: number,
-        message: string
+        message: string,
+        infoMessage: boolean
     ) {
         try {
-            message = `${BOT_PREFIX}\n${message}`
+            if(!infoMessage)
+                message = `${BOT_PREFIX}\n${message}`
             const response = await this.client.sendMessage(chatId!, {
                 message,
                 replyTo: messageId

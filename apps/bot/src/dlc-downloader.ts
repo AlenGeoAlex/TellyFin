@@ -4,7 +4,7 @@ import {PersistentQueue} from "@/persistent-queue.js";
 import {DLCDownloadTask, DownloadTask, QueryLinkTask} from "@/types/download-task.js";
 import fs from "fs";
 import {Logger} from "@/logger.js";
-import {ThumbsDown, ThumbsUp} from "@/constants/emoticon.js";
+import {Loading, ThumbsDown, ThumbsUp} from "@/constants/emoticon.js";
 import {Environment} from "@/types/env.type.js";
 import path from "node:path";
 import {JDownloader} from "@/jdownloader.js";
@@ -91,6 +91,18 @@ export class DLCDownloader {
 
             fs.renameSync(tempPath, downloadPath);
             Logger.info(`Saved: ${downloadPath}`);
+            const client = this.userBot.telegramClient;
+            const channel = Environment.get().options.FORWARD_CHANNELS;
+            if(channel.length > 0){
+                try {
+                    const channelEntity = await client.getEntity(channel[0])
+                    client.sendMessage(channelEntity, {
+                        message: `Downloaded ${resolved.title}[${download.name}] from ${download.host} to ${downloadPath}`
+                    }).catch((err) => Logger.error(`Failed to send message to channel: ${err}`));
+                }catch (e) {
+                    Logger.error(`Failed to get channel entity: ${e}`);
+                }
+            }
 
             await this.userBot.jellyfinManager.tryRefresh();
         } catch (err) {
@@ -150,6 +162,10 @@ export class DLCDownloader {
         }
 
         Logger.info(`Found ${pixelDrainLinks.length} PixelDrain links, queuing downloads...`);
+        this.userBot.interactionHandler.replyToMessage(message.chatId, message.id, `Found ${pixelDrainLinks.length} PixelDrain links, queuing downloads...`, true)
+            .catch((err) => Logger.error(`Failed to reply to message: ${err}`))
+        this.userBot.interactionHandler.react(message.chatId, message.id, Loading)
+            .catch((err) => Logger.error(`Failed to react to message: ${err}`));
         for (const link of pixelDrainLinks) {
             this._mediaDownloadQueue.push(link.url, link);
         }
@@ -167,11 +183,11 @@ export class DLCDownloader {
 
             const interval = setInterval(async () => {
                 try {
-                    const isCollecting = await this.userBot.jDownloader.isCollecting();
-                    if (isCollecting) {
-                        Logger.info(`JDownloader is still collecting for job ${jobId}`);
-                        return;
-                    }
+                    // const isCollecting = await this.userBot.jDownloader.isCollecting();
+                    // if (!isCollecting) {
+                    //     Logger.info(`JDownloader is still collecting for job ${jobId}`);
+                    //     return;
+                    // }
 
                     const jDownloaderResponse = await this.userBot.jDownloader.queryLink(jobId);
                     if (jDownloaderResponse.data.length === 0) {
@@ -187,7 +203,7 @@ export class DLCDownloader {
                     clearTimeout(timeout);
                     reject(e);
                 }
-            }, 1000 * 30);
+            }, 1000 * 60);
         });
     }
 
