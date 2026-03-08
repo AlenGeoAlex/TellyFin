@@ -34,6 +34,9 @@ export function resolvePath(template: string, media: ResolvedMedia): string {
     return template.replace(/\{(\w+)\}/g, (_, key) => placeholders[key] ?? key);
 }
 
+
+
 function sanitize(str: string): string {
     return str.replace(/[<>:"/\\|?*]/g, "").trim();
 }
+

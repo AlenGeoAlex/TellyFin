@@ -5,14 +5,13 @@ import path from "node:path";
 import {Environment} from "@/types/env.type.js";
 import {resolvePath} from "@/utils.js";
 import * as fs from "node:fs";
-import {createClient} from "@/client.js";
 import {Error, Loading, Success, ThumbsDown, ThumbsUp} from "@/constants/emoticon.js";
 import {FAILED_TO_FIND_MEDIA} from "@/constants/messages.js";
 import bigInt from "big-integer";
 import {PersistentQueue} from "@/persistent-queue.js";
 import {DownloadTask} from "@/types/download-task.js";
 
-export class Downloader {
+export class TelegramDownloader {
     private readonly downloaderQueue: PersistentQueue<ReturnType<DownloadTask['serializable']>>;
 
     constructor(private readonly userBot: UserBot) {

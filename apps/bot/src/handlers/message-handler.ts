@@ -3,6 +3,8 @@ import {UserBot} from "@/userbot.js";
 import {Api} from "telegram";
 import {Logger} from "@/logger.js";
 import {Environment} from "@/types/env.type.js";
+import fs from "fs";
+import path from "node:path";
 
 export const messageHandler = async (event: NewMessageEvent, options: {
     userBot: UserBot
@@ -19,13 +21,20 @@ export const messageHandler = async (event: NewMessageEvent, options: {
 
     const text = message.text;
     if(message.file){
-        const downloaderResponse = await options.userBot.downloader.download(message, message.file.name);
-        if(downloaderResponse === 'NoContent') {
-            Logger.warn("No content in downloader response, skipping")
-            return;
+        if(message.file.name.endsWith('.dlc'))
+        {
+            await options.userBot.dlcDownloader.download(message);
         }
+        else
+        {
+            const downloaderResponse = await options.userBot.telegramDownloader.download(message, message.file.name);
+            if(downloaderResponse === 'NoContent') {
+                Logger.warn("No content in downloader response, skipping")
+                return;
+            }
 
-        Logger.info(`Downloader response: ${downloaderResponse}`)
+            Logger.info(`Downloader response: ${downloaderResponse}`)
+        }
     } else if(!message.media) {
         const searcherResponse = await options.userBot.searcher.search(text, message.id, message.chatId);
         Logger.info(`Searcher response: ${searcherResponse}`)

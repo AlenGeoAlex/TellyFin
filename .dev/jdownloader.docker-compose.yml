@@ -1,0 +1,21 @@
+services:
+  jdownloader:
+    image: jlesage/jdownloader-2
+    container_name: jdownloader
+    restart: unless-stopped
+    environment:
+      #- JDOWNLOADER_HEADLESS=1
+      - JDOWNLOADER_MAX_MEM=512M
+      - TZ=Europe/Dublin
+      - KEEP_APP_RUNNING=1
+      - MYJDOWNLOADER_DEVICE_NAME=local-dev
+    volumes:
+      - ./jd-config:/config:rw
+      - ./jd-downloads:/output:rw
+      - ./dlc-shared:/shared/dlcs
+    # Port 3129 is only needed if you want MyJDownloader Direct Connection
+    # (skips the cloud relay when on same network - useful for local dev)
+    ports:
+      - "3129:3129"
+      - "3128:3128"
+      - "5800:5800"   # Web UI

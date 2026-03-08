@@ -24,6 +24,9 @@ export class Environment {
             SERIES_PATH: (process.env.SERIES_PATH) ?? './series',
             JELLYFIN_URL: process.env.JELLYFIN_URL,
             JELLYFIN_API_KEY: process.env.JELLYFIN_API_KEY,
+            JDOWNLOADER_URL: process.env.JDOWNLOADER_URL ?? this.error('JDOWNLOADER_URL environment variable is required'),
+            JDOWNLOADER_DLC_PATH: process.env.JDOWNLOADER_DLC_PATH ?? this.error('JDOWNLOADER_DLC_PATH environment variable is required'),
+            PIXEL_DRAIN_API_KEY: process.env.PIXEL_DRAIN_API_KEY!
         };
     }
 
@@ -37,6 +40,9 @@ export class Environment {
         return Environment._instance;
     }
 
+    private error(message: string) : any {
+        throw new Error(message);
+    }
 }
 
 
@@ -57,5 +63,8 @@ interface Options {
     MOVIE_PATH: string;
     JELLYFIN_URL: string | undefined;
     JELLYFIN_API_KEY: string | undefined;
-    [key: string]: string | string[] | number | undefined;
+    JDOWNLOADER_URL: string | undefined
+    JDOWNLOADER_DLC_PATH: string | undefined
+    PIXEL_DRAIN_API_KEY: string
+    [key: string]: any
 }

@@ -4,7 +4,7 @@ import {createClient} from "@/client.js";
 import {Logger} from "@/logger.js";
 import {NewMessage, NewMessageEvent, Raw} from "telegram/events/index.js";
 import {Searcher} from "@/searcher.js";
-import {Downloader} from "@/downloader.js";
+import {TelegramDownloader} from "@/telegram-downloader.js";
 import {LlamaModelManager} from "@/llm-model-manager.js";
 import {TMDBClient} from "@/tmdb-client.js";
 import {InteractionHandler} from "@/interaction-handler.js";
@@ -13,6 +13,8 @@ import {ReplyHandler} from "@/handlers/reply-handler.js";
 import Message = Api.Message;
 import {ConnectionHeartbeat} from "@/connection-heartbeat.js";
 import {JellyfinManager} from "@/jellyfin/jellyfin-manager.js";
+import {DLCDownloader} from "@/dlc-downloader.js";
+import {JDownloader} from "@/jdownloader.js";
 
 export async function start() {
     const client = createClient(true);
@@ -57,17 +59,19 @@ export class UserBot {
     private _isSetupComplete = false;
     private me!: Api.User;
     private readonly _searcher: Searcher;
-    private readonly _downloader: Downloader;
+    private readonly _telegramDownloader: TelegramDownloader;
+    private readonly _dlcDownloader: DLCDownloader;
     private readonly _llmModelManager: LlamaModelManager;
     private readonly _tmdbClient: TMDBClient;
     private readonly _interactionHandler: InteractionHandler;
     private readonly _replyHandler: ReplyHandler;
     private readonly _jellyfinManager: JellyfinManager;
+    private readonly _jDownloader: JDownloader;
     constructor(
         private readonly client: TelegramClient
     ) {
         this._searcher = new Searcher(this);
-        this._downloader = new Downloader(this);
+        this._telegramDownloader = new TelegramDownloader(this);
         this._llmModelManager = new LlamaModelManager(Environment.get().options.LLM_MODEL_PATH)
         this._tmdbClient = new TMDBClient(
             Environment.get().options.TMDB_API_KEY,
@@ -76,6 +80,8 @@ export class UserBot {
         this._interactionHandler = new InteractionHandler(this);
         this._replyHandler = new ReplyHandler(this);
         this._jellyfinManager = new JellyfinManager(this);
+        this._dlcDownloader = new DLCDownloader(this);
+        this._jDownloader = new JDownloader(Environment.get().options.JDOWNLOADER_URL!);
     }
 
     async setupClient(){
@@ -107,9 +113,13 @@ export class UserBot {
                 }
             }
         }, new Raw({}));
+        await this.jDownloader.clearList();
         this._isSetupComplete = true;
     }
 
+    public get dlcDownloader(): DLCDownloader {
+        return this._dlcDownloader;
+    }
 
     public get telegramClient() : TelegramClient {
         return this.client;
@@ -127,8 +137,8 @@ export class UserBot {
         return this._searcher;
     }
 
-    get downloader(): Downloader {
-        return this._downloader;
+    get telegramDownloader(): TelegramDownloader {
+        return this._telegramDownloader;
     }
 
     get llmModelManager(): LlamaModelManager {
@@ -152,15 +162,19 @@ export class UserBot {
         return this._jellyfinManager;
     }
 
+    get jDownloader(): JDownloader {
+        return this._jDownloader;
+    }
+
     async gracefulShutdown(signal: string) {
         Logger.info(`Received ${signal}, shutting down gracefully...`);
 
         try {
-            await this.downloader.pauseQueue();
-            Logger.info(`Waiting for ${this.downloader.pending} pending downloads to finish...`);
+            await this.telegramDownloader.pauseQueue();
+            Logger.info(`Waiting for ${this.telegramDownloader.pending} pending downloads to finish...`);
 
             await Promise.race([
-                this.downloader.queueOnIdle(),
+                this.telegramDownloader.queueOnIdle(),
                 new Promise(r => setTimeout(r, 30_000)), // max 30s wait
             ]);
 

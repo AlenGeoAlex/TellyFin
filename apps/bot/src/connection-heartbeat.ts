@@ -1,5 +1,7 @@
 import {UserBot} from "@/userbot.js";
 import {Logger} from "@/logger.js";
+import {Api} from "telegram";
+import bigInt from "big-integer";
 
 export class ConnectionHeartbeat {
 
@@ -11,7 +13,7 @@ export class ConnectionHeartbeat {
         setInterval(() => {
             this.tick()
                 .catch(e => Logger.error("Failed to tick heartbeat: " + e))
-        }, 1000 * 6);
+        }, 1000 * 60);
         Logger.info("Connection heartbeat started")
     }
 
@@ -23,21 +25,20 @@ export class ConnectionHeartbeat {
         if(!telegramClient)
             return;
 
-        if(telegramClient.connected)
-        {
-            Logger.info("Connection is still alive, skipping heartbeat")
-            return;
-        }
-
-        const lastConnected = Date.now() - this.lastTimestamp;
-        Logger.info("Connection is dead, reconnecting, last connection is: " + lastConnected + "ms ago")
-        this.lastTimestamp = Date.now();
-        await telegramClient.connect();
-        Logger.info("Reconnected")
         try {
-            // telegramClient.sendMessage()
-        }catch (e){
-            Logger.error("Failed to reconnect: " + e)
+            await telegramClient.invoke(new Api.Ping({ pingId: bigInt(Date.now()) }));
+            Logger.info("Heartbeat ping OK");
+        } catch (e) {
+            const lastConnected = Date.now() - this.lastTimestamp;
+            Logger.warn(`Heartbeat ping failed, reconnecting... last alive: ${lastConnected}ms ago`);
+            this.lastTimestamp = Date.now();
+            try {
+                await telegramClient.connect();
+                Logger.info("Reconnected");
+            } catch (reconnectErr) {
+                Logger.error("Failed to reconnect: " + reconnectErr);
+                process.exit(1);
+            }
         }
     }
 

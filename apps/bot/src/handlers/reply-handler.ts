@@ -47,7 +47,7 @@ export class ReplyHandler {
         const originalFileMessage = originalFileMessages[0]
         const providedText = message.text;
 
-        const reply = await this.userBot.downloader.download(originalFileMessage, providedText)
+        const reply = await this.userBot.telegramDownloader.download(originalFileMessage, providedText)
         if(reply === 'NoContent') {
             Logger.warn("Failed to download file, skipping reply handler (This shouldn't happen).")
             return;

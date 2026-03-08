@@ -3,15 +3,15 @@ import {
     LlamaModel,
     LlamaContext,
     LlamaChatSession,
-    LlamaJsonSchemaGrammar, Llama,
+    Llama,
 } from "node-llama-cpp";
 import * as fs from "fs";
 import * as path from "path";
 import * as https from "https";
 import * as http from "http";
-import {Logger} from "@/logger.js";
+import { Logger } from "@/logger.js";
 import PQueue from "p-queue";
-import {cleanFileName} from "@/utils.js";
+import { cleanFileName } from "@/utils.js";
 
 export interface MediaInfo {
     candidateTitle: string;
@@ -22,19 +22,6 @@ export interface MediaInfo {
     quality: string | null;
     ext: string | null;
 }
-
-const MEDIA_INFO_SCHEMA = {
-    type: "object",
-    properties: {
-        candidateTitle: { type: "string" },
-        year: { type: ["number", "null"] },
-        season: { type: ["number", "null"] },
-        episode: { type: ["number", "null"] },
-        isMovie: { type: "boolean" },
-        quality: { type: ["string", "null"] },
-    },
-    required: ["candidateTitle", "year", "season", "episode", "isMovie", "quality"],
-} as const;
 
 export class LlamaModelManager {
     private model: LlamaModel | null = null;
@@ -113,7 +100,6 @@ export class LlamaModelManager {
         });
     }
 
-
     async load(): Promise<void> {
         if (this.model) {
             Logger.log("Model already loaded.");
@@ -133,7 +119,6 @@ export class LlamaModelManager {
         Logger.log("Model loaded.");
     }
 
-
     async unload(): Promise<void> {
         if (this.context) {
             await this.context.dispose();
@@ -150,67 +135,114 @@ export class LlamaModelManager {
         Logger.log("Model unloaded.");
     }
 
-
     async extractMediaInfo(filename: string): Promise<MediaInfo> {
         if (!this.model) {
             await this.load();
         }
 
-        return await this.queue.add(() => this._extract(filename))
+        return await this.queue.add(() => this._extract(filename));
     }
 
+    // --- Regex helpers ---
+
+    private static extractYear(filename: string): number | null {
+        // Match a 4-digit year not adjacent to other digits
+        const match = filename.match(/(?<!\d)(19|20)\d{2}(?!\d)/);
+        return match ? parseInt(match[0]) : null;
+    }
+
+    private static extractSeasonEpisode(filename: string): { season: number | null; episode: number | null } {
+        const match = filename.match(/S(\d{1,2})E(\d{1,2})/i);
+        if (match) {
+            return { season: parseInt(match[1]), episode: parseInt(match[2]) };
+        }
+        // Also handle 1x02 format
+        const altMatch = filename.match(/(?<!\d)(\d{1,2})x(\d{1,2})(?!\d)/i);
+        if (altMatch) {
+            return { season: parseInt(altMatch[1]), episode: parseInt(altMatch[2]) };
+        }
+        return { season: null, episode: null };
+    }
+
+    private static extractQuality(filename: string): string | null {
+        const match = filename.match(/\b(480p|720p|1080p|2160p|4K)\b/i);
+        return match ? match[1].toLowerCase() : null;
+    }
+
+    private static extractExt(filename: string): string | null {
+        const match = filename.match(/\.(\w{2,4})$/);
+        return match ? match[1].toLowerCase() : null;
+    }
+
+    private static stripNoise(filename: string): string {
+        return filename
+            // Remove file extension
+            .replace(/\.\w{2,4}$/, "")
+            // Remove leading site/group tags: [TAG], @Site -, www.site.com -
+            .replace(/^\[.*?\]\s*/g, "")
+            .replace(/^@\S+\s*-\s*/g, "")
+            .replace(/^www\.\S+\s*-?\s*/gi, "")
+            // Remove everything from year or SxxExx onwards
+            .replace(/(?<!\d)(19|20)\d{2}(?!\d).*$/i, "")
+            .replace(/S\d{1,2}E\d{1,2}.*/i, "")
+            .replace(/\d{1,2}x\d{1,2}.*/i, "")
+            // Replace dots and underscores with spaces
+            .replace(/[._]/g, " ")
+            // Collapse multiple spaces
+            .replace(/\s+/g, " ")
+            .trim();
+    }
 
     private async _extract(filename: string): Promise<MediaInfo> {
         if (!this.model || !this.context) {
             throw new Error("Model not loaded.");
         }
 
-        const episodePattern = filename.match(/S\d{1,2}E\d{1,2}/i)?.[0] ?? null;
+        Logger.log(`Extracting media info for: ${filename}`);
 
-        let cleaned = cleanFileName(filename)
-        cleaned = episodePattern && !cleaned.includes(episodePattern)
-            ? `${cleaned} ${episodePattern}`
-            : cleaned;
-        Logger.log(`Extracting media info for: ${cleaned}`);
+        // Extract structured fields with regex — no LLM needed
+        const year = LlamaModelManager.extractYear(filename);
+        const { season, episode } = LlamaModelManager.extractSeasonEpisode(filename);
+        const quality = LlamaModelManager.extractQuality(filename);
+        const ext = LlamaModelManager.extractExt(filename);
+        const isMovie = season === null && episode === null;
 
-        const grammar = new LlamaJsonSchemaGrammar(this.instance!, MEDIA_INFO_SCHEMA);
+        // Strip noise to give LLM only the title portion
+        const titleHint = LlamaModelManager.stripNoise(filename);
+
+        // LLM only cleans up the title
         const session = new LlamaChatSession({
             contextSequence: this.context.getSequence(),
         });
 
-        const prompt = `You are a media filename parser. Filenames use dots or underscores instead of spaces.
-
-Rules:
-- Dots and underscores are spaces, NOT separators between fields
-- Strip any leading tags in square brackets like [MS], [TamilMV], [YTS] — these are site/group tags, not part of the title
-- Strip any leading channel/site prefixes like "@TamilMV -", "www.site.com" etc.
-- The title ends when you hit a 4-digit year (1900-2099) OR SxxExx pattern
-- NEVER use resolution numbers (480, 720, 1080, 2160) as season/episode
-- NEVER use audio channel numbers (5.1, 7.1, 2.0) as season/episode
-- Season/episode ONLY comes from explicit patterns like S01E02, S01, E02, 1x02 — nothing else
-- If no explicit SxxExx pattern exists, it is a movie
-- Ignore everything after the year: codecs, bitrate, audio tags, source tags, group names, language names
-- If season AND episode are both null after parsing, it is definitely a movie — set isMovie to true
+        const prompt = `Extract the movie or TV show title from this text. 
+The text has already had technical tags, years, and episode codes removed.
+Return only the clean title — no punctuation, no explanation, no extra words.
 
 Examples:
-"Salt.Mango.Tree.2015.1080p.WEB-DL.x265" → title: "Salt Mango Tree", year: 2015, isMovie: true
-"The.Glory.S01E03.1080p.BluRay" → title: "The Glory", season: 1, episode: 3, isMovie: false
-"@TamilMV - Manjummel.Boys.2024.720p" → title: "Manjummel Boys", year: 2024, isMovie: true
-"[MS] Paathirathri (2025) Malayalam WEB-DL 1080p" → title: "Paathirathri", year: 2025, isMovie: true
-"Sausage_Party_2016_1080p_BluRay_Hindi_DDP_5_1" → title: "Sausage Party", year: 2016, isMovie: true
-"Movie.Name.2020.S01E02.1080p" → title: "Movie Name", year: 2020, season: 1, episode: 2, isMovie: false
-"Sausage_Party_2016_1080p_BluRay_Hindi_DDP_5_1" → title: "Sausage Party", year: 2016, season: null, episode: null, isMovie: true
+"Salt Mango Tree" → Salt Mango Tree
+"The Glory" → The Glory
+"Manjummel Boys" → Manjummel Boys
+"Girl From Nowhere The Reset" → Girl From Nowhere The Reset
 
-Filename: "${cleaned}"
+Text: "${titleHint}"`;
 
-Return JSON only.`;
+        const rawTitle = await session.prompt(prompt, { temperature: 0 });
+        const candidateTitle = rawTitle.trim().replace(/^["']|["']$/g, "");
 
-        const raw = await session.prompt(prompt, { grammar });
-        Logger.log(`LLM response: ${raw}`);
-        try {
-            return JSON.parse(raw) as MediaInfo;
-        } catch {
-            throw new Error(`Failed to parse LLM response: ${raw}`);
-        }
+        Logger.log(`LLM title: ${candidateTitle}`);
+
+        const result: MediaInfo = {
+            candidateTitle,
+            year,
+            season,
+            episode,
+            isMovie,
+            quality,
+            ext,
+        };
+
+        Logger.log(`Extracted media info: ${JSON.stringify(result)}`);
+        return result;
     }
 }
