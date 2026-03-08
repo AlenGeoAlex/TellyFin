@@ -39,7 +39,7 @@ export class Searcher {
             // await this.userBot.interactionHandler.replyToMessage(chatId, messageId, responseText);
         } catch (e) {
             Logger.error(`Search failed: ${e}`);
-            await this.userBot.interactionHandler.replyToMessage(chatId, messageId, "An error occurred while searching.");
+            await this.userBot.interactionHandler.replyToMessage(chatId, messageId, "An error occurred while searching.", true);
         }
     }
 
