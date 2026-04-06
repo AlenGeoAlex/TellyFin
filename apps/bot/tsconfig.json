@@ -5,12 +5,10 @@
     "moduleResolution": "NodeNext",
     "rootDir": "src",
     "outDir": "dist",
-    "ignoreDeprecations": "6.0",
-    "baseUrl": "src",
     "paths": {
-      "@/*": ["*"],
-      "@utils/*": ["utils/*"],
-      "@modules/*": ["modules/*"]
+      "@/*": ["./src/*"],
+      "@utils/*": ["./src/utils/*"],
+      "@modules/*": ["./src/modules/*"]
     },
 
     "strict": true,
