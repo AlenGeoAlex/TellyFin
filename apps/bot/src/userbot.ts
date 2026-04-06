@@ -67,6 +67,10 @@ export class UserBot {
     private readonly _replyHandler: ReplyHandler;
     private readonly _jellyfinManager: JellyfinManager;
     private readonly _jDownloader: JDownloader;
+    private _newMessageHandler?: (event: NewMessageEvent) => Promise<void>;
+    private _rawUpdateHandler?: (update: Api.TypeUpdate) => Promise<void>;
+
+
     constructor(
         private readonly client: TelegramClient
     ) {
@@ -87,35 +91,48 @@ export class UserBot {
     async setupClient(){
         if(this._isSetupComplete) return;
         this.me = await this.client.getMe();
-        Logger.log(`Logged in as ${this.me.username}`)
-        this.client.addEventHandler(async (event: NewMessageEvent) => {
-            if(event.message.replyTo){
-                Logger.info("Reply message detected - Forwarding to reply handler")
-                await this._replyHandler.handleReply(event.message);
-            }else{
-                Logger.info("Message detected - Forwarding to message handler")
-                await messageHandler(event, {userBot: this});
-            }
-        }, new NewMessage({}))
+        Logger.log(`Logged in as ${this.me.username}`);
 
-        this.client.addEventHandler(async (update: Api.TypeUpdate) => {
-            if(update.className === 'UpdateEditMessage'){
-                if (update.message.className === 'Message') {
-                    const message = update.message as Message;
-                    message.reactions?.recentReactions?.forEach(reaction => {
-                        if (reaction.reaction instanceof Api.ReactionEmoji) {
-                            const emoticon = reaction.reaction.emoticon;
-                            const peerId = reaction.peerId;
+        this.registerEventHandlers();
 
-                            console.log(emoticon);
-                        }
-                    })
-                }
-            }
-        }, new Raw({}));
         await this.jDownloader.clearList();
         this._isSetupComplete = true;
     }
+
+    public registerEventHandlers(){
+        if(this._newMessageHandler)
+            this.client.removeEventHandler(this._newMessageHandler, new NewMessage({}));
+        if(this._rawUpdateHandler)
+            this.client.removeEventHandler(this._rawUpdateHandler, new Raw({}));
+
+        this._newMessageHandler = async (event: NewMessageEvent) => {
+            console.log("New message event received");
+            if(event.message.replyTo){
+                Logger.info("Reply message detected - Forwarding to reply handler");
+                await this._replyHandler.handleReply(event.message);
+            } else {
+                Logger.info("Message detected - Forwarding to message handler");
+                await messageHandler(event, {userBot: this});
+            }
+        };
+
+        this._rawUpdateHandler = async (update: Api.TypeUpdate) => {
+            if(update.className === 'UpdateEditMessage'){
+                if(update.message.className === 'Message'){
+                    const message = update.message as Message;
+                    message.reactions?.recentReactions?.forEach(reaction => {
+                        if(reaction.reaction instanceof Api.ReactionEmoji){
+                            console.log(reaction.reaction.emoticon);
+                        }
+                    });
+                }
+            }
+        };
+
+        this.client.addEventHandler(this._newMessageHandler, new NewMessage({}));
+        this.client.addEventHandler(this._rawUpdateHandler, new Raw({}));
+    }
+
 
     public get dlcDownloader(): DLCDownloader {
         return this._dlcDownloader;

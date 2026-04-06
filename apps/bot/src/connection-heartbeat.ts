@@ -34,6 +34,7 @@ export class ConnectionHeartbeat {
             this.lastTimestamp = Date.now();
             try {
                 await telegramClient.connect();
+                this.userbot.registerEventHandlers();
                 Logger.info("Reconnected");
             } catch (reconnectErr) {
                 Logger.error("Failed to reconnect: " + reconnectErr);
