@@ -1,13 +1,15 @@
-import {IHost} from "@/host/host.js";
+import {HostDownloadResult, IHost, writeResponseToFile} from "@/host/host.js";
 import {Environment} from "@/types/env.type.js";
-import fs from "fs";
 
 export class PixelDrainHost implements IHost {
 
-    async download(url: string, outputPath: string): Promise<{
-        status: boolean
-        error?: string
-    }> {
+    readonly name = 'pixeldrain.com';
+
+    canHandle(host: string): boolean {
+        return host === 'pixeldrain.com';
+    }
+
+    async download(url: string, outputPath: string): Promise<HostDownloadResult> {
         const pixelDrainApiKey = Environment.get().options.PIXEL_DRAIN_API_KEY;
         if (!pixelDrainApiKey) {
             return { status: false, error: "PixelDrain API key not found" };
@@ -30,25 +32,7 @@ export class PixelDrainHost implements IHost {
             return { status: false, error: `PixelDrain returned ${response.status}: ${await response.text()}` };
         }
 
-        const fileStream = fs.createWriteStream(outputPath);
-        const reader = response.body!.getReader();
-
-        await new Promise<void>((resolve, reject) => {
-            const pump = async () => {
-                try {
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) { fileStream.end(); resolve(); return; }
-                        fileStream.write(value);
-                    }
-                } catch (err) {
-                    fileStream.destroy();
-                    reject(err);
-                }
-            };
-            pump();
-        });
-
+        await writeResponseToFile(response, outputPath);
         return { status: true };
     }
 

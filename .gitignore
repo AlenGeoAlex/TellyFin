@@ -25,3 +25,5 @@ build/
 # Project specific
 apps/bot/movies/
 apps/bot/series/
+.dev/jd-config/
+**/downloads-queue-*.json

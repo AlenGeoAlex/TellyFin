@@ -47,6 +47,7 @@ export class JDownloader {
             "comment": true,
             "enabled": true,
             "host": true,
+            "bytesTotal": true,
             maxResults: 1000,
             startAt: 0
         }
@@ -104,6 +105,82 @@ export class JDownloader {
             sourceUrl: '',
             dataURLs: [],
         });
+    }
+
+    /**
+     * Adds plain URLs to the link grabber with a dedicated destination folder.
+     */
+    public async addUrls(links: string, packageName: string, destinationFolder: string) {
+        return await this.addLink({
+            autostart: false,
+            packageName,
+            links,
+            destinationFolder,
+            comment: '',
+            priority: JDownloader.Constants.Priority.Default,
+            downloadPassword: '',
+            extractPassword: '',
+            overwritePackagizerRules: true,
+            sourceUrl: '',
+            dataURLs: [],
+        });
+    }
+
+    public async moveToDownloadList(linkIds: number[], packageIds: number[] = []) {
+        // The deprecated API only accepts these as query-string params, JSON bodies fail with a 500
+        await this.getWithIds(JDownloader.LinkGrabber.MOVE_TO_DOWNLOAD_LIST, linkIds, packageIds);
+    }
+
+    public async removeLinkGrabberLinks(linkIds: number[], packageIds: number[] = []) {
+        await this.getWithIds(JDownloader.LinkGrabber.REMOVE_LINKS, linkIds, packageIds);
+    }
+
+    public async startDownloads() {
+        const response = await fetch(this.generateCallableUrl(JDownloader.Downloads.START));
+        if (!response.ok)
+            throw new Error(`Failed to start downloads. Status code: ${response.status} - ${await response.text()}`);
+    }
+
+    public async queryDownloadLinks() {
+        const query = {
+            host: true,
+            name: true,
+            status: true,
+            bytesLoaded: true,
+            bytesTotal: true,
+            finished: true,
+            running: true,
+            skipped: true,
+            enabled: true,
+            maxResults: 1000,
+            startAt: 0
+        };
+
+        const response = await fetch(this.generateCallableUrl(JDownloader.Downloads.QUERY_LINKS), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+        });
+
+        if (!response.ok)
+            throw new Error(`Failed to query download links. Status code: ${response.status} - ${await response.text()}`);
+
+        const responseData = await response.json() as JDownloader.JDownloaderResponse<JDownloader.Downloads.DownloadLink[]>;
+        return responseData.data;
+    }
+
+    public async removeDownloadLinks(linkIds: number[], packageIds: number[] = []) {
+        await this.getWithIds(JDownloader.Downloads.REMOVE_LINKS, linkIds, packageIds);
+    }
+
+    private async getWithIds(endpoint: string, linkIds: number[], packageIds: number[]) {
+        const url = new URL(this.generateCallableUrl(endpoint));
+        url.searchParams.set('linkIds', JSON.stringify(linkIds));
+        url.searchParams.set('packageIds', JSON.stringify(packageIds));
+
+        const response = await fetch(url.toString());
+        if (!response.ok)
+            throw new Error(`Failed to call ${endpoint}. Status code: ${response.status} - ${await response.text()}`);
     }
 
     private async addLink(
@@ -217,6 +294,11 @@ export namespace JDownloader {
 
     }
 
+    export namespace LinkGrabber {
+        export const MOVE_TO_DOWNLOAD_LIST = "/linkgrabberv2/moveToDownloadlist";
+        export const REMOVE_LINKS = "/linkgrabberv2/removeLinks";
+    }
+
     export namespace QueryLink {
         export const QUERY_LINK = "/linkgrabberv2/queryLinks";
 
@@ -234,9 +316,30 @@ export namespace JDownloader {
             packageUUID: number;
             uuid: number,
             url: string;
-            enabled: boolean
+            enabled: boolean;
+            bytesTotal?: number;
         }
 
+    }
+
+    export namespace Downloads {
+        export const QUERY_LINKS = "/downloadsV2/queryLinks";
+        export const REMOVE_LINKS = "/downloadsV2/removeLinks";
+        export const START = "/downloadcontroller/start";
+
+        export interface DownloadLink {
+            uuid: number;
+            packageUUID: number;
+            host: string;
+            name: string;
+            status?: string;
+            bytesLoaded?: number;
+            bytesTotal?: number;
+            finished?: boolean;
+            running?: boolean;
+            skipped?: boolean;
+            enabled?: boolean;
+        }
     }
 
     export namespace Constants {

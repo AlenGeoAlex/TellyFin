@@ -97,78 +97,71 @@ export class DLCDownloadTask {
     }
 }
 
-export class QueryLinkTask {
-    private readonly _host: string;
+export type LinkAvailability = 'ONLINE' | 'OFFLINE' | 'UNKNOWN' | 'TEMP_UNKNOWN';
+
+export interface Mirror {
+    host: string;
+    url: string;
+    availability: LinkAvailability;
+    bytesTotal?: number;
+}
+
+type LegacyQueryLinkTask = {
+    host: string;
+    name: string;
+    availability: LinkAvailability;
+    url: string;
+};
+
+/**
+ * A single file from a DLC along with every mirror it is available on.
+ */
+export class MediaDownloadTask {
     private readonly _name: string;
-    private readonly _availability: 'ONLINE' | 'OFFLINE' | 'UNKNOWN' | 'TEMP_UNKNOWN';
-    private readonly _packageUUID: number;
-    private readonly _uuid: number;
-    private readonly _url: string;
-    private readonly _enabled: boolean;
+    private readonly _mirrors: Mirror[];
 
-    constructor(
-        host: string,
-        name: string,
-        availability: 'ONLINE' | 'OFFLINE' | 'UNKNOWN' | 'TEMP_UNKNOWN',
-        packageUUID: number,
-        uuid: number,
-        url: string,
-        enabled: boolean
-    ) {
-        this._host = host;
+    constructor(name: string, mirrors: Mirror[]) {
         this._name = name;
-        this._availability = availability;
-        this._packageUUID = packageUUID;
-        this._uuid = uuid;
-        this._url = url;
-        this._enabled = enabled;
+        this._mirrors = mirrors;
     }
 
-    public static fromResponse(response: JDownloader.QueryLink.QueryLinkResponse): QueryLinkTask {
-        return new QueryLinkTask(
-            response.host,
-            response.name,
-            response.availability,
-            response.packageUUID,
-            response.uuid,
-            response.url,
-            response.enabled
-        );
+    public static fromLink(link: JDownloader.QueryLink.QueryLinkResponse): MediaDownloadTask {
+        return new MediaDownloadTask(link.name, [MediaDownloadTask.mirrorOf(link)]);
     }
 
-    public get host(): string { return this._host; }
-    public get name(): string { return this._name; }
-    public get availability(): 'ONLINE' | 'OFFLINE' | 'UNKNOWN' | 'TEMP_UNKNOWN' { return this._availability; }
-    public get packageUUID(): number { return this._packageUUID; }
-    public get uuid(): number { return this._uuid; }
-    public get url(): string { return this._url; }
-    public get enabled(): boolean { return this._enabled; }
-
-    public serializable() {
+    public static mirrorOf(link: JDownloader.QueryLink.QueryLinkResponse): Mirror {
         return {
-            host: this._host,
-            name: this._name,
-            availability: this._availability,
-            packageUUID: this._packageUUID,
-            uuid: this._uuid,
-            url: this._url,
-            enabled: this._enabled
+            host: link.host,
+            url: link.url,
+            availability: link.availability,
+            bytesTotal: link.bytesTotal
         };
     }
 
-    public static deserialize(data: ReturnType<QueryLinkTask['serializable']>): QueryLinkTask {
-        return new QueryLinkTask(
-            data.host,
-            data.name,
-            data.availability,
-            data.packageUUID,
-            data.uuid,
-            data.url,
-            data.enabled
-        );
+    public get name(): string { return this._name; }
+    public get mirrors(): Mirror[] { return this._mirrors; }
+
+    public serializable() {
+        return {
+            name: this._name,
+            mirrors: this._mirrors
+        };
+    }
+
+    public static deserialize(data: ReturnType<MediaDownloadTask['serializable']> | LegacyQueryLinkTask): MediaDownloadTask {
+        // Entries queued before mirror support held a single JDownloader link
+        if (!('mirrors' in data)) {
+            return new MediaDownloadTask(data.name, [{
+                host: data.host,
+                url: data.url,
+                availability: data.availability
+            }]);
+        }
+
+        return new MediaDownloadTask(data.name, data.mirrors);
     }
 
     public toString(): string {
-        return `QueryLinkTask(host=${this._host}, name=${this._name}, url=${this._url}, availability=${this._availability})`;
+        return `MediaDownloadTask(name=${this._name}, mirrors=${this._mirrors.map(m => m.host).join(',')})`;
     }
 }

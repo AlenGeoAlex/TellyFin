@@ -26,7 +26,14 @@ export class Environment {
             JELLYFIN_API_KEY: process.env.JELLYFIN_API_KEY,
             JDOWNLOADER_URL: process.env.JDOWNLOADER_URL ?? this.error('JDOWNLOADER_URL environment variable is required'),
             JDOWNLOADER_DLC_PATH: process.env.JDOWNLOADER_DLC_PATH ?? this.error('JDOWNLOADER_DLC_PATH environment variable is required'),
-            PIXEL_DRAIN_API_KEY: process.env.PIXEL_DRAIN_API_KEY!
+            JDOWNLOADER_OUTPUT_PATH: process.env.JDOWNLOADER_OUTPUT_PATH,
+            JDOWNLOADER_CONTAINER_OUTPUT_PATH: process.env.JDOWNLOADER_CONTAINER_OUTPUT_PATH || '/output',
+            PIXEL_DRAIN_API_KEY: process.env.PIXEL_DRAIN_API_KEY!,
+            FILEKEEPER_API_KEY: process.env.FILEKEEPER_API_KEY,
+            HOST_PRIORITY: (process.env.HOST_PRIORITY || 'pixeldrain.com,filekeeper.net,gofile.io,vikingfile.com,send.now')
+                .split(',')
+                .map(x => x.trim())
+                .filter(Boolean)
         };
     }
 
@@ -65,6 +72,10 @@ interface Options {
     JELLYFIN_API_KEY: string | undefined;
     JDOWNLOADER_URL: string | undefined
     JDOWNLOADER_DLC_PATH: string | undefined
+    JDOWNLOADER_OUTPUT_PATH: string | undefined
+    JDOWNLOADER_CONTAINER_OUTPUT_PATH: string
     PIXEL_DRAIN_API_KEY: string
+    FILEKEEPER_API_KEY: string | undefined
+    HOST_PRIORITY: string[]
     [key: string]: any
 }
