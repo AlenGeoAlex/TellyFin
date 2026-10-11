@@ -148,6 +148,7 @@ export class JDownloader {
             status: true,
             bytesLoaded: true,
             bytesTotal: true,
+            speed: true,
             finished: true,
             running: true,
             skipped: true,
@@ -335,6 +336,7 @@ export namespace JDownloader {
             status?: string;
             bytesLoaded?: number;
             bytesTotal?: number;
+            speed?: number;
             finished?: boolean;
             running?: boolean;
             skipped?: boolean;

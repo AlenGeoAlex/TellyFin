@@ -1,4 +1,4 @@
-import {HostDownloadResult, IHost} from "@/host/host.js";
+import {HostDownloadResult, HostProgress, IHost} from "@/host/host.js";
 import {JDownloader} from "@/jdownloader.js";
 import {Logger} from "@/logger.js";
 import fs from "fs";
@@ -16,6 +16,7 @@ const STALL_TIMEOUT = 10 * 60 * 1000;
 export class JDownloaderHost implements IHost {
 
     readonly name = 'JDownloader';
+    private activeLinkIds: number[] = [];
 
     constructor(
         private readonly jDownloader: JDownloader,
@@ -48,6 +49,7 @@ export class JDownloaderHost implements IHost {
             }
 
             linkIds = online.map(link => link.uuid);
+            this.activeLinkIds = linkIds;
             await this.jDownloader.moveToDownloadList(linkIds);
             await this.jDownloader.startDownloads()
                 .catch(err => Logger.warn(`Failed to start JDownloader downloads: ${err}`));
@@ -63,6 +65,7 @@ export class JDownloaderHost implements IHost {
             this.moveFile(file, outputPath);
             return { status: true };
         } finally {
+            this.activeLinkIds = [];
             if (linkIds.length > 0) {
                 await this.jDownloader.removeDownloadLinks(linkIds)
                     .catch(err => Logger.warn(`Failed to remove JDownloader download links: ${err}`));
@@ -71,6 +74,20 @@ export class JDownloaderHost implements IHost {
             }
             fs.rmSync(localDir, { recursive: true, force: true });
         }
+    }
+
+    async progress(): Promise<HostProgress | undefined> {
+        if (this.activeLinkIds.length === 0) return undefined;
+
+        const links = (await this.jDownloader.queryDownloadLinks())
+            .filter(link => this.activeLinkIds.includes(link.uuid));
+        if (links.length === 0) return undefined;
+
+        return {
+            loaded: links.reduce((total, link) => total + (link.bytesLoaded ?? 0), 0),
+            total: links.reduce((total, link) => total + (link.bytesTotal ?? 0), 0) || undefined,
+            speed: links.reduce((total, link) => total + (link.speed ?? 0), 0)
+        };
     }
 
     private async waitForLinkGrabber(jobId: number) {

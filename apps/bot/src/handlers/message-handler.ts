@@ -5,6 +5,7 @@ import {Logger} from "@/logger.js";
 import {Environment} from "@/types/env.type.js";
 import fs from "fs";
 import path from "node:path";
+import {handleCommand} from "@/handlers/command-handler.js";
 
 export const messageHandler = async (event: NewMessageEvent, options: {
     userBot: UserBot
@@ -12,6 +13,10 @@ export const messageHandler = async (event: NewMessageEvent, options: {
     const message = event.message;
     const isValidSender = await validateSender(message, options.userBot);
     if(!isValidSender.isValid) return;
+
+    if(!message.media && message.text?.startsWith('/')) {
+        if(await handleCommand(message, options.userBot)) return;
+    }
 
     if(message.media instanceof Api.MessageMediaEmpty)
     {

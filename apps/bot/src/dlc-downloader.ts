@@ -11,11 +11,29 @@ import {JDownloader} from "@/jdownloader.js";
 import QueryLinkResponse = JDownloader.QueryLink.QueryLinkResponse;
 import {resolvePath} from "@/utils.js";
 import {HostRegistry} from "@/host/host-registry.js";
-import {IHost} from "@/host/host.js";
+import {HostProgress, IHost} from "@/host/host.js";
 
 // Mirrors without a resolved file name are matched to a file by size. Hosts often report rounded sizes
 // (filekeeper and send.now report the same rounded value), so exact matches win, then this tolerance applies.
 const SIZE_MATCH_TOLERANCE = 0.0001;
+
+export interface ActiveMediaDownload {
+    name: string;
+    title?: string;
+    mirror?: Mirror;
+    host?: IHost;
+    attempt: number;
+    attempts: number;
+    tempPath?: string;
+    attemptStartedAt: number;
+}
+
+export interface DLCDownloaderStatus {
+    pendingDlcs: number;
+    active?: ActiveMediaDownload;
+    progress?: HostProgress;
+    queued: string[];
+}
 
 interface FailedAttempt {
     mirror: Mirror;
@@ -28,6 +46,7 @@ export class DLCDownloader {
     private readonly _queue: PersistentQueue<ReturnType<DownloadTask['serializable']>>;
     private readonly _mediaDownloadQueue : PersistentQueue<ReturnType<MediaDownloadTask['serializable']>>;
     private _hostRegistry: HostRegistry | undefined;
+    private _active: ActiveMediaDownload | undefined;
 
     constructor(userBot: UserBot) {
         this.userBot = userBot;
@@ -72,6 +91,12 @@ export class DLCDownloader {
         }
 
         let tempPath: string | undefined;
+        const active: ActiveMediaDownload = this._active = {
+            name: download.name,
+            attempt: 0,
+            attempts: planned.length,
+            attemptStartedAt: Date.now()
+        };
 
         try {
             Logger.info(`Extracting media info for file: ${download.name}`);
@@ -93,6 +118,7 @@ export class DLCDownloader {
             }
 
             Logger.info(`Resolved media: ${JSON.stringify(resolved)}`);
+            active.title = resolved.title;
 
             const fileTemplate = resolved.type === 'movie'
                 ? Environment.get().options.MOVIE_PATH
@@ -105,10 +131,16 @@ export class DLCDownloader {
 
             fs.mkdirSync(path.dirname(downloadPath), { recursive: true });
             tempPath = `${downloadPath}.tmp`;
+            active.tempPath = tempPath;
 
             const failures: FailedAttempt[] = [];
 
             for (const { mirror, host } of planned) {
+                active.mirror = mirror;
+                active.host = host;
+                active.attempt++;
+                active.attemptStartedAt = Date.now();
+
                 Logger.info(`Downloading ${download.name} from ${this.describe(mirror, host)}: ${mirror.url}`);
 
                 let error: string | undefined;
@@ -144,7 +176,41 @@ export class DLCDownloader {
             if (tempPath && fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
             Logger.error(`Failed to process download ${download}: ${err}`);
             throw err;
+        } finally {
+            this._active = undefined;
         }
+    }
+
+    public async status(): Promise<DLCDownloaderStatus> {
+        const active = this._active;
+        const queued = this._mediaDownloadQueue.entries
+            .map(entry => MediaDownloadTask.deserialize(entry).name)
+            .filter(name => name !== active?.name);
+
+        return {
+            pendingDlcs: this._queue.size,
+            active,
+            progress: active ? await this.activeProgress(active) : undefined,
+            queued
+        };
+    }
+
+    private async activeProgress(active: ActiveMediaDownload): Promise<HostProgress | undefined> {
+        if (!active.host) return undefined;
+
+        if (active.host.progress) {
+            return await active.host.progress().catch(() => undefined);
+        }
+
+        // Native hosts stream straight into the temp file
+        if (!active.tempPath || !fs.existsSync(active.tempPath)) return undefined;
+        const loaded = fs.statSync(active.tempPath).size;
+        const elapsed = (Date.now() - active.attemptStartedAt) / 1000;
+        return {
+            loaded,
+            total: active.mirror?.bytesTotal,
+            speed: elapsed > 0 ? loaded / elapsed : undefined
+        };
     }
 
     private describe(mirror: Mirror, host: IHost) {

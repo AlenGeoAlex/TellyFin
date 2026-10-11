@@ -69,6 +69,15 @@ export class PersistentQueue<T> {
         }, { priority: -entry.order });
     }
 
+    /**
+     * Pending tasks in queue order, including the ones currently running.
+     */
+    public get entries(): T[] {
+        return [...this.pending.values()]
+            .sort((a, b) => a.order - b.order)
+            .map(entry => entry.data);
+    }
+
     public get size(): number {
         return this.queue.size + this.queue.pending;
     }

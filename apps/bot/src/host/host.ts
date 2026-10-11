@@ -22,6 +22,18 @@ export interface IHost {
 
     download(url: string, path: string) : Promise<HostDownloadResult>;
 
+    /**
+     * Progress of the running download, for hosts that don't write straight to the output path.
+     */
+    progress?(): Promise<HostProgress | undefined>;
+
+}
+
+export interface HostProgress {
+    loaded: number
+    total?: number
+    // bytes per second
+    speed?: number
 }
 
 /**

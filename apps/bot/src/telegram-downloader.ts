@@ -11,8 +11,17 @@ import bigInt from "big-integer";
 import {PersistentQueue} from "@/persistent-queue.js";
 import {DownloadTask} from "@/types/download-task.js";
 
+export interface ActiveTelegramDownload {
+    fileName: string;
+    title?: string;
+    downloaded: number;
+    total: number;
+    startedAt: number;
+}
+
 export class TelegramDownloader {
     private readonly downloaderQueue: PersistentQueue<ReturnType<DownloadTask['serializable']>>;
+    private _active: ActiveTelegramDownload | undefined;
 
     constructor(private readonly userBot: UserBot) {
         this.downloaderQueue = new PersistentQueue(
@@ -26,6 +35,16 @@ export class TelegramDownloader {
 
     public get pending(): number {
         return this.downloaderQueue.size;
+    }
+
+    public get active(): ActiveTelegramDownload | undefined {
+        return this._active;
+    }
+
+    public get queued(): string[] {
+        return this.downloaderQueue.entries
+            .map(entry => entry.fileName)
+            .filter(name => name !== this._active?.fileName);
     }
 
     public pauseQueue(): void {
@@ -60,6 +79,12 @@ export class TelegramDownloader {
         Logger.info(`Processing task: ${task}`);
 
         let tempPath: string | undefined;
+        const active: ActiveTelegramDownload = this._active = {
+            fileName: task.fileName,
+            downloaded: 0,
+            total: 0,
+            startedAt: Date.now()
+        };
 
         try {
 
@@ -96,6 +121,7 @@ export class TelegramDownloader {
             }
 
             Logger.info(`Resolved media: ${JSON.stringify(resolved)}`);
+            active.title = resolved.title;
 
             const fileTemplate = resolved.type === 'movie'
                 ? Environment.get().options.MOVIE_PATH
@@ -123,11 +149,14 @@ export class TelegramDownloader {
                 }
             }, 10_000);
 
+            active.startedAt = Date.now();
             try {
                 await client.downloadMedia(message.media!, {
                     outputFile: tempPath,
                     progressCallback: (downloaded: bigInt.BigInteger, total: bigInt.BigInteger) => {
                         lastProgressAt = Date.now();
+                        active.downloaded = downloaded.toJSNumber();
+                        active.total = total.toJSNumber();
                         const percent = total.greater(0)
                             ? Math.round(downloaded.multiply(100).divide(total).toJSNumber())
                             : 0;
@@ -152,6 +181,7 @@ export class TelegramDownloader {
             throw err;
 
         } finally {
+            this._active = undefined;
             await client.disconnect().catch(() => {});
             await client.destroy().catch(() => {});
         }
