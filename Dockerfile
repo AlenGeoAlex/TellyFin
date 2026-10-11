@@ -6,7 +6,8 @@ RUN apt-get update && apt-get install -y \
     git python3 make g++ cmake \
     && rm -rf /var/lib/apt/lists/*
 
-RUN npm install -g pnpm typescript tsc-alias
+# node-gyp: bufferutil/utf-8-validate have no linux-arm64 prebuilds and compile from source there
+RUN npm install -g pnpm typescript tsc-alias node-gyp
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/bot/package.json ./apps/bot/
